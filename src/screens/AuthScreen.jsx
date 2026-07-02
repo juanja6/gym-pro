@@ -43,11 +43,12 @@ export default function AuthScreen() {
     try {
       await loginWithGoogle();
     } catch (err) {
-      if (err.code !== 'auth/popup-closed-by-user') {
+      if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
         setError('Error con Google. Inténtalo de nuevo.');
+        setLoading(false);
       }
+      // If redirect, loading stays true until page reloads
     }
-    setLoading(false);
   };
 
   return (

@@ -3,13 +3,15 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
+  getRedirectResult,
   signOut,
   onAuthStateChanged,
   updateProfile,
 } from 'firebase/auth';
 import { auth, googleProvider } from './firebase';
 
-const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+// Check redirect result on page load (for mobile Google login)
+getRedirectResult(auth).catch(() => {});
 
 export async function registerWithEmail(email, password, displayName) {
   const cred = await createUserWithEmailAndPassword(auth, email, password);
@@ -25,11 +27,17 @@ export async function loginWithEmail(email, password) {
 }
 
 export async function loginWithGoogle() {
-  if (isMobile) {
-    await signInWithRedirect(auth, googleProvider);
-  } else {
+  try {
+    // Try popup first (works on desktop)
     const cred = await signInWithPopup(auth, googleProvider);
     return cred.user;
+  } catch (err) {
+    if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+      // Fallback to redirect (works on mobile)
+      await signInWithRedirect(auth, googleProvider);
+    } else {
+      throw err;
+    }
   }
 }
 
