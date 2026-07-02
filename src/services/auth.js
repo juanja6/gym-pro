@@ -10,7 +10,9 @@ import {
 } from 'firebase/auth';
 import { auth, googleProvider } from './firebase';
 
-// Check redirect result on page load (for mobile Google login)
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+// Capture redirect result when page loads after Google redirect
 getRedirectResult(auth).catch(() => {});
 
 export async function registerWithEmail(email, password, displayName) {
@@ -27,18 +29,11 @@ export async function loginWithEmail(email, password) {
 }
 
 export async function loginWithGoogle() {
-  try {
-    // Try popup first (works on desktop)
-    const cred = await signInWithPopup(auth, googleProvider);
-    return cred.user;
-  } catch (err) {
-    if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-      // Fallback to redirect (works on mobile)
-      await signInWithRedirect(auth, googleProvider);
-    } else {
-      throw err;
-    }
+  if (isMobile) {
+    return signInWithRedirect(auth, googleProvider);
   }
+  const cred = await signInWithPopup(auth, googleProvider);
+  return cred.user;
 }
 
 export async function logout() {
