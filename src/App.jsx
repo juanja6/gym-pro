@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Home, Dumbbell, UtensilsCrossed, BarChart3, User } from 'lucide-react';
+import { onAuthChange, logout } from './services/auth';
 import storage from './services/storage';
 import { DEFAULT_ROUTINES } from './data/exercises';
+import AuthScreen from './screens/AuthScreen';
 import HomeScreen from './screens/HomeScreen';
 import WorkoutScreen from './screens/WorkoutScreen';
 import DietScreen from './screens/DietScreen';
@@ -23,6 +25,7 @@ const TABS = [
 ];
 
 export default function App() {
+  const [user, setUser] = useState(undefined); // undefined = loading, null = not logged in
   const [tab, setTab] = useState('home');
   const [profile, setProfile] = useState(null);
   const [routines, setRoutines] = useState(DEFAULT_ROUTINES);
@@ -32,22 +35,44 @@ export default function App() {
   const [waterLog, setWaterLog] = useState({});
   const [favorites, setFavorites] = useState([]);
   const [streaks, setStreaks] = useState({ current: 0, best: 0, lastDate: '' });
-  const [loaded, setLoaded] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
-  // Load data on mount
+  // Listen for auth changes
   useEffect(() => {
-    setProfile(storage.getProfile(DEFAULT_PROFILE));
-    setRoutines(storage.getRoutines(DEFAULT_ROUTINES));
-    setWorkoutLog(storage.getWorkoutLog());
-    setBodyLog(storage.getBodyLog());
-    setMealsData(storage.getMeals());
-    setWaterLog(storage.getWater());
-    setFavorites(storage.getFavorites());
-    setStreaks(storage.getStreaks());
-    setLoaded(true);
+    const unsub = onAuthChange(async (firebaseUser) => {
+      if (firebaseUser) {
+        storage.setUser(firebaseUser.uid);
+        // Load all data from Firestore
+        const [p, r, wl, bl, m, w, f, s] = await Promise.all([
+          storage.getProfile({ ...DEFAULT_PROFILE, name: firebaseUser.displayName || 'Atleta' }),
+          storage.getRoutines(DEFAULT_ROUTINES),
+          storage.getWorkoutLog(),
+          storage.getBodyLog(),
+          storage.getMeals(),
+          storage.getWater(),
+          storage.getFavorites(),
+          storage.getStreaks(),
+        ]);
+        setProfile(p);
+        setRoutines(r);
+        setWorkoutLog(wl);
+        setBodyLog(bl);
+        setMealsData(m);
+        setWaterLog(w);
+        setFavorites(f);
+        setStreaks(s);
+        setDataLoaded(true);
+        setUser(firebaseUser);
+      } else {
+        setUser(null);
+        setDataLoaded(false);
+        storage.setUser(null);
+      }
+    });
+    return unsub;
   }, []);
 
-  // Save helpers
+  // Save helpers (async to Firestore)
   const saveProfile = useCallback((v) => { setProfile(v); storage.setProfile(v); }, []);
   const saveWorkoutLog = useCallback((v) => { setWorkoutLog(v); storage.setWorkoutLog(v); }, []);
   const saveBodyLog = useCallback((v) => { setBodyLog(v); storage.setBodyLog(v); }, []);
@@ -103,18 +128,35 @@ export default function App() {
     return tips.length > 0 ? tips : [{ icon: '💪', text: '¡Sigue así! Cada día cuenta para tu transformación.' }];
   }, [mealsData, waterLog, profile, streaks, workoutLog]);
 
-  if (!loaded || !profile) return (
+  // Loading splash
+  if (user === undefined) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', background: 'var(--bg)' }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 48, marginBottom: 12 }}>🏋️</div>
-        <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--accent)' }}>GymPro</div>
-        <div className="text-dim text-sm" style={{ marginTop: 4 }}>Cargando...</div>
+        <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg, var(--accent), #00b894)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, boxShadow: '0 8px 32px rgba(0,212,170,0.3)' }}>
+          <Dumbbell size={32} color="var(--bg)" />
+        </div>
+        <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--accent)' }}>GymPro</div>
+        <div className="text-dim text-sm" style={{ marginTop: 8 }}>Cargando...</div>
       </div>
     </div>
   );
 
-  const state = { profile, routines, workoutLog, bodyLog, mealsData, waterLog, favorites, streaks };
-  const actions = { saveProfile, saveWorkoutLog, saveBodyLog, saveMeals, saveWater, saveFavorites, saveStreaks, addWater, toggleFav, getAITips };
+  // Not logged in → show auth screen
+  if (!user) return <AuthScreen />;
+
+  // Logged in but data still loading
+  if (!dataLoaded || !profile) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', background: 'var(--bg)' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 48, marginBottom: 12 }}>🏋️</div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--accent)' }}>GymPro</div>
+        <div className="text-dim text-sm" style={{ marginTop: 8 }}>Cargando tus datos...</div>
+      </div>
+    </div>
+  );
+
+  const state = { profile, routines, workoutLog, bodyLog, mealsData, waterLog, favorites, streaks, user };
+  const actions = { saveProfile, saveWorkoutLog, saveBodyLog, saveMeals, saveWater, saveFavorites, saveStreaks, addWater, toggleFav, getAITips, logout };
 
   const screens = {
     home: <HomeScreen state={state} actions={actions} setTab={setTab} />,

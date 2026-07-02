@@ -1,70 +1,72 @@
-const PREFIX = 'gympro_';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from './firebase';
 
-const KEYS = {
-  PROFILE: PREFIX + 'profile',
-  ROUTINES: PREFIX + 'routines',
-  WORKOUT_LOG: PREFIX + 'workoutlog',
-  BODY_LOG: PREFIX + 'bodylog',
-  MEALS: PREFIX + 'meals',
-  WATER: PREFIX + 'water',
-  FAVORITES: PREFIX + 'favorites',
-  STREAKS: PREFIX + 'streaks',
-  SETTINGS: PREFIX + 'settings',
-};
+let currentUid = null;
 
-function get(key, defaultValue = null) {
-  try {
-    const v = localStorage.getItem(key);
-    return v !== null ? JSON.parse(v) : defaultValue;
-  } catch { return defaultValue; }
+function userDoc(collection) {
+  if (!currentUid) throw new Error('No user logged in');
+  return doc(db, 'users', currentUid, 'data', collection);
 }
 
-function set(key, value) {
+async function get(collection, defaultValue = null) {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    const snap = await getDoc(userDoc(collection));
+    return snap.exists() ? snap.data().value : defaultValue;
+  } catch (e) {
+    console.error('Firestore get error:', collection, e);
+    return defaultValue;
+  }
+}
+
+async function set(collection, value) {
+  try {
+    await setDoc(userDoc(collection), { value, updatedAt: Date.now() });
     return true;
-  } catch { return false; }
+  } catch (e) {
+    console.error('Firestore set error:', collection, e);
+    return false;
+  }
 }
 
-function remove(key) {
-  try { localStorage.removeItem(key); return true; } catch { return false; }
-}
-
-// Convenience
 export const storage = {
-  getProfile: (d) => get(KEYS.PROFILE, d),
-  setProfile: (v) => set(KEYS.PROFILE, v),
-  getRoutines: (d) => get(KEYS.ROUTINES, d),
-  setRoutines: (v) => set(KEYS.ROUTINES, v),
-  getWorkoutLog: (d = []) => get(KEYS.WORKOUT_LOG, d),
-  setWorkoutLog: (v) => set(KEYS.WORKOUT_LOG, v),
-  getBodyLog: (d = []) => get(KEYS.BODY_LOG, d),
-  setBodyLog: (v) => set(KEYS.BODY_LOG, v),
-  getMeals: (d = {}) => get(KEYS.MEALS, d),
-  setMeals: (v) => set(KEYS.MEALS, v),
-  getWater: (d = {}) => get(KEYS.WATER, d),
-  setWater: (v) => set(KEYS.WATER, v),
-  getFavorites: (d = []) => get(KEYS.FAVORITES, d),
-  setFavorites: (v) => set(KEYS.FAVORITES, v),
-  getStreaks: (d = { current: 0, best: 0, lastDate: '' }) => get(KEYS.STREAKS, d),
-  setStreaks: (v) => set(KEYS.STREAKS, v),
-  getSettings: (d = { notifications: true }) => get(KEYS.SETTINGS, d),
-  setSettings: (v) => set(KEYS.SETTINGS, v),
-  exportAll: () => {
+  setUser: (uid) => { currentUid = uid; },
+  getUser: () => currentUid,
+
+  getProfile: (d) => get('profile', d),
+  setProfile: (v) => set('profile', v),
+  getRoutines: (d) => get('routines', d),
+  setRoutines: (v) => set('routines', v),
+  getWorkoutLog: (d = []) => get('workoutLog', d),
+  setWorkoutLog: (v) => set('workoutLog', v),
+  getBodyLog: (d = []) => get('bodyLog', d),
+  setBodyLog: (v) => set('bodyLog', v),
+  getMeals: (d = {}) => get('meals', d),
+  setMeals: (v) => set('meals', v),
+  getWater: (d = {}) => get('water', d),
+  setWater: (v) => set('water', v),
+  getFavorites: (d = []) => get('favorites', d),
+  setFavorites: (v) => set('favorites', v),
+  getStreaks: (d = { current: 0, best: 0, lastDate: '' }) => get('streaks', d),
+  setStreaks: (v) => set('streaks', v),
+  getSettings: (d = { notifications: true }) => get('settings', d),
+  setSettings: (v) => set('settings', v),
+
+  exportAll: async () => {
+    const keys = ['profile', 'routines', 'workoutLog', 'bodyLog', 'meals', 'water', 'favorites', 'streaks', 'settings'];
     const data = {};
-    for (const [name, key] of Object.entries(KEYS)) data[name] = get(key);
+    for (const k of keys) data[k] = await get(k);
     return JSON.stringify(data, null, 2);
   },
-  importAll: (json) => {
+
+  importAll: async (json) => {
     try {
       const data = JSON.parse(json);
-      for (const [name, key] of Object.entries(KEYS)) {
-        if (data[name] !== undefined && data[name] !== null) set(key, data[name]);
+      for (const [k, v] of Object.entries(data)) {
+        if (v !== undefined && v !== null) await set(k, v);
       }
       return true;
     } catch { return false; }
   }
 };
 
-export { KEYS };
 export default storage;

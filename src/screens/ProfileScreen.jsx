@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Card, Badge, Btn } from '../components/common';
-import { Pencil, Sparkles, Download, Save, Upload } from 'lucide-react';
+import { Pencil, Sparkles, Download, Save, Upload, LogOut } from 'lucide-react';
 import storage from '../services/storage';
 
 export default function ProfileScreen({ state, actions }) {
-  const { profile, streaks, workoutLog } = state;
-  const { saveProfile, getAITips } = actions;
+  const { profile, streaks, workoutLog, user } = state;
+  const { saveProfile, getAITips, logout } = actions;
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(profile);
   const [importMode, setImportMode] = useState(false);
@@ -27,8 +27,8 @@ export default function ProfileScreen({ state, actions }) {
     setEditing(false);
   };
 
-  const exportData = () => {
-    const data = storage.exportAll();
+  const exportData = async () => {
+    const data = await storage.exportAll();
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -40,14 +40,20 @@ export default function ProfileScreen({ state, actions }) {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      if (storage.importAll(ev.target.result)) {
+    reader.onload = async (ev) => {
+      if (await storage.importAll(ev.target.result)) {
         window.location.reload();
       } else {
         alert('Error al importar datos');
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleLogout = async () => {
+    if (confirm('¿Cerrar sesión?')) {
+      await logout();
+    }
   };
 
   const achievements = [
@@ -67,6 +73,7 @@ export default function ProfileScreen({ state, actions }) {
           {profile.name[0]}
         </div>
         <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>{profile.name}</div>
+        <div className="text-dim text-sm" style={{ marginBottom: 6 }}>{user?.email}</div>
         <Badge>{profile.level}</Badge>
       </div>
 
@@ -168,6 +175,13 @@ export default function ProfileScreen({ state, actions }) {
               <Upload size={16} /> Importar datos
               <input type="file" accept=".json" onChange={importData} style={{ display: 'none' }} />
             </label>
+          </Card>
+
+          {/* Logout */}
+          <Card>
+            <button onClick={handleLogout} className="btn w-full" style={{ background: 'var(--red-dim)', color: 'var(--red)' }}>
+              <LogOut size={16} /> Cerrar Sesión
+            </button>
           </Card>
         </>
       ) : (
