@@ -2,11 +2,14 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
   onAuthStateChanged,
   updateProfile,
 } from 'firebase/auth';
 import { auth, googleProvider } from './firebase';
+
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
 export async function registerWithEmail(email, password, displayName) {
   const cred = await createUserWithEmailAndPassword(auth, email, password);
@@ -22,8 +25,12 @@ export async function loginWithEmail(email, password) {
 }
 
 export async function loginWithGoogle() {
-  const cred = await signInWithPopup(auth, googleProvider);
-  return cred.user;
+  if (isMobile) {
+    await signInWithRedirect(auth, googleProvider);
+  } else {
+    const cred = await signInWithPopup(auth, googleProvider);
+    return cred.user;
+  }
 }
 
 export async function logout() {
