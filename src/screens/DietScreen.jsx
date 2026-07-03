@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Card, Badge, Btn, Modal, Ring } from '../components/common';
-import { FOOD_DB, MEAL_SLOTS } from '../data/foods';
+import { FOOD_DB, MEAL_SLOTS, FOOD_CATEGORIES } from '../data/foods';
 import { Search, Plus, Trash2, Droplets, ChevronLeft, Upload, Calculator } from 'lucide-react';
 import ImportModal from '../components/ImportModal';
 import GoalCalculator from '../components/GoalCalculator';
@@ -14,6 +14,7 @@ export default function DietScreen({ state, actions }) {
   const [selFood, setSelFood] = useState(null);
   const [showImport, setShowImport] = useState(false);
   const [showCalc, setShowCalc] = useState(false);
+  const [foodCat, setFoodCat] = useState('Todos');
 
   const todayKey = new Date().toISOString().split('T')[0];
   const todayMeals = (mealsData[todayKey] || { meals: [] }).meals || [];
@@ -46,7 +47,10 @@ export default function DietScreen({ state, actions }) {
     saveMeals({ ...mealsData, [todayKey]: existing });
   };
 
-  const filteredFoods = FOOD_DB.filter(f => !foodSearch || f.name.toLowerCase().includes(foodSearch.toLowerCase()));
+  const filteredFoods = FOOD_DB.filter(f =>
+    (foodCat === 'Todos' || f.cat === foodCat) &&
+    (!foodSearch || f.name.toLowerCase().includes(foodSearch.toLowerCase()))
+  );
 
   return (
     <div className="screen">
@@ -168,6 +172,11 @@ export default function DietScreen({ state, actions }) {
             <div className="search-box">
               <Search size={16} />
               <input value={foodSearch} onChange={e => setFoodSearch(e.target.value)} placeholder="Buscar alimento..." />
+            </div>
+            <div className="chips-row">
+              {FOOD_CATEGORIES.map(cat => (
+                <button key={cat} className={`chip ${foodCat === cat ? 'active' : ''}`} onClick={() => setFoodCat(cat)}>{cat}</button>
+              ))}
             </div>
             <div style={{ maxHeight: '50vh', overflow: 'auto' }}>
               {filteredFoods.map((f, i) => (

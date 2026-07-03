@@ -50,6 +50,8 @@ export const storage = {
   setStreaks: (v) => set('streaks', v),
   getSettings: (d = { notifications: true }) => get('settings', d),
   setSettings: (v) => set('settings', v),
+  getProgressPhotos: (d = []) => get('progressPhotos', d),
+  setProgressPhotos: (v) => set('progressPhotos', v),
 
   exportAll: async () => {
     const keys = ['profile', 'routines', 'workoutLog', 'bodyLog', 'meals', 'water', 'favorites', 'streaks', 'settings'];

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Home, Dumbbell, UtensilsCrossed, BarChart3, User } from 'lucide-react';
+import { Home, Dumbbell, UtensilsCrossed, BarChart3, User, Camera } from 'lucide-react';
 import { onAuthChange, logout } from './services/auth';
 import storage from './services/storage';
 import { DEFAULT_ROUTINES } from './data/exercises';
@@ -9,6 +9,7 @@ import WorkoutScreen from './screens/WorkoutScreen';
 import DietScreen from './screens/DietScreen';
 import StatsScreen from './screens/StatsScreen';
 import ProfileScreen from './screens/ProfileScreen';
+import ProgressPhotos from './screens/ProgressPhotos';
 
 const DEFAULT_PROFILE = {
   name: 'Atleta', age: 28, height: 178, weight: 78, sex: 'Hombre',
@@ -21,6 +22,7 @@ const TABS = [
   { id: 'workout', label: 'Entreno', Icon: Dumbbell },
   { id: 'diet', label: 'Dieta', Icon: UtensilsCrossed },
   { id: 'stats', label: 'Stats', Icon: BarChart3 },
+  { id: 'progress', label: 'Fotos', Icon: Camera },
   { id: 'profile', label: 'Perfil', Icon: User },
 ];
 
@@ -35,6 +37,7 @@ export default function App() {
   const [waterLog, setWaterLog] = useState({});
   const [favorites, setFavorites] = useState([]);
   const [streaks, setStreaks] = useState({ current: 0, best: 0, lastDate: '' });
+  const [progressPhotos, setProgressPhotos] = useState([]);
   const [dataLoaded, setDataLoaded] = useState(false);
 
   // Listen for auth changes
@@ -43,7 +46,7 @@ export default function App() {
       if (firebaseUser) {
         storage.setUser(firebaseUser.uid);
         // Load all data from Firestore
-        const [p, r, wl, bl, m, w, f, s] = await Promise.all([
+        const [p, r, wl, bl, m, w, f, s, pp] = await Promise.all([
           storage.getProfile({ ...DEFAULT_PROFILE, name: firebaseUser.displayName || 'Atleta' }),
           storage.getRoutines(DEFAULT_ROUTINES),
           storage.getWorkoutLog(),
@@ -52,6 +55,7 @@ export default function App() {
           storage.getWater(),
           storage.getFavorites(),
           storage.getStreaks(),
+          storage.getProgressPhotos ? storage.getProgressPhotos() : [],
         ]);
         setProfile(p);
         setRoutines(r);
@@ -61,6 +65,7 @@ export default function App() {
         setWaterLog(w);
         setFavorites(f);
         setStreaks(s);
+        setProgressPhotos(pp || []);
         setDataLoaded(true);
         setUser(firebaseUser);
       } else {
@@ -81,6 +86,7 @@ export default function App() {
   const saveWater = useCallback((v) => { setWaterLog(v); storage.setWater(v); }, []);
   const saveFavorites = useCallback((v) => { setFavorites(v); storage.setFavorites(v); }, []);
   const saveStreaks = useCallback((v) => { setStreaks(v); storage.setStreaks(v); }, []);
+  const saveProgressPhotos = useCallback((v) => { setProgressPhotos(v); if (storage.setProgressPhotos) storage.setProgressPhotos(v); }, []);
 
   const addWater = useCallback((amount) => {
     const todayKey = new Date().toISOString().split('T')[0];
@@ -156,14 +162,15 @@ export default function App() {
     </div>
   );
 
-  const state = { profile, routines, workoutLog, bodyLog, mealsData, waterLog, favorites, streaks, user };
-  const actions = { saveProfile, saveRoutines, saveWorkoutLog, saveBodyLog, saveMeals, saveWater, saveFavorites, saveStreaks, addWater, toggleFav, getAITips, logout };
+  const state = { profile, routines, workoutLog, bodyLog, mealsData, waterLog, favorites, streaks, progressPhotos, user };
+  const actions = { saveProfile, saveRoutines, saveWorkoutLog, saveBodyLog, saveMeals, saveWater, saveFavorites, saveStreaks, saveProgressPhotos, addWater, toggleFav, getAITips, logout };
 
   const screens = {
     home: <HomeScreen state={state} actions={actions} setTab={setTab} />,
     workout: <WorkoutScreen state={state} actions={actions} />,
     diet: <DietScreen state={state} actions={actions} />,
     stats: <StatsScreen state={state} actions={actions} />,
+    progress: <ProgressPhotos state={state} actions={actions} />,
     profile: <ProfileScreen state={state} actions={actions} />,
   };
 
