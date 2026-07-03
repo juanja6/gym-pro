@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, Badge, Btn, Modal, Ring } from '../components/common';
 import { EXERCISES, MUSCLE_GROUPS, MUSCLE_EMOJI } from '../data/exercises';
-import { Search, ChevronLeft, ChevronRight, Dumbbell, Star, Check, Play, Square, Clock } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Dumbbell, Star, Check, Play, Square, Clock, Upload } from 'lucide-react';
+import ImportModal from '../components/ImportModal';
 
 export default function WorkoutScreen({ state, actions }) {
   const { routines, workoutLog, favorites } = state;
@@ -14,6 +15,7 @@ export default function WorkoutScreen({ state, actions }) {
   const [search, setSearch] = useState('');
   const [timer, setTimer] = useState({ active: false, secs: 90, rem: 90 });
   const [now, setNow] = useState(Date.now());
+  const [showImport, setShowImport] = useState(false);
   const timerRef = useRef(null);
 
   useEffect(() => {
@@ -45,7 +47,8 @@ export default function WorkoutScreen({ state, actions }) {
       date: new Date().toISOString().split('T')[0], startTime: Date.now(),
       exercises: routine.exercises.map(re => {
         const ex = EXERCISES.find(e => e.id === re.exerciseId);
-        return { exerciseId: re.exerciseId, name: ex?.name || '', rest: re.rest,
+        const name = ex?.name || re.exerciseId?.replace(/_/g, ' ') || 'Ejercicio';
+        return { exerciseId: re.exerciseId, name, rest: re.rest,
           sets: re.sets.map(s => ({ target_r: s.r, target_w: s.w, r: '', w: '', rpe: '', done: false })) };
       }),
     });
@@ -264,7 +267,7 @@ export default function WorkoutScreen({ state, actions }) {
         </Btn>
         {selRt.exercises.map((re, i) => {
           const ex = EXERCISES.find(e => e.id === re.exerciseId);
-          if (!ex) return null;
+          const name = ex?.name || re.exerciseId?.replace(/_/g, ' ') || `Ejercicio ${i+1}`;
           return (
             <Card key={i}>
               <div className="row-between">
@@ -273,7 +276,7 @@ export default function WorkoutScreen({ state, actions }) {
                     <Dumbbell size={16} color="var(--accent)" />
                   </div>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: 14 }}>{ex.name}</div>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>{name}</div>
                     <div className="text-dim text-xs">{re.sets.length} series · Desc: {re.rest}s</div>
                   </div>
                 </div>
@@ -309,22 +312,29 @@ export default function WorkoutScreen({ state, actions }) {
         ))}
       </div>
 
-      {view === 'routines' && routines.map(r => (
-        <Card key={r.id} onClick={() => setSelRt(r)}>
-          <div className="row-between">
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>{r.name}</div>
-              <div className="text-dim text-sm" style={{ marginBottom: 8 }}>{r.muscles}</div>
-              <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-                <Badge color="var(--blue)">{r.day}</Badge>
-                <Badge color="var(--text-dim)">{r.duration}</Badge>
-                <Badge>{r.exercises.length} ej.</Badge>
+      {view === 'routines' && (
+        <>
+          <Btn secondary onClick={() => setShowImport(true)} className="w-full" style={{ marginBottom: 12 }}>
+            <Upload size={16} /> Importar Rutina (IA / archivo)
+          </Btn>
+          {routines.map(r => (
+            <Card key={r.id || r.name} onClick={() => setSelRt(r)}>
+              <div className="row-between">
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>{r.name}</div>
+                  <div className="text-dim text-sm" style={{ marginBottom: 8 }}>{r.muscles || `${r.exercises.length} ejercicios`}</div>
+                  <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+                    {r.day && <Badge color="var(--blue)">{r.day}</Badge>}
+                    {r.duration && <Badge color="var(--text-dim)">{r.duration}</Badge>}
+                    <Badge>{r.exercises.length} ej.</Badge>
+                  </div>
+                </div>
+                <ChevronRight size={20} color="var(--text-dim)" />
               </div>
-            </div>
-            <ChevronRight size={20} color="var(--text-dim)" />
-          </div>
-        </Card>
-      ))}
+            </Card>
+          ))}
+        </>
+      )}
 
       {view === 'library' && (
         <>
@@ -383,6 +393,27 @@ export default function WorkoutScreen({ state, actions }) {
           </Card>
         ))
       )}
+
+      <ImportModal
+        visible={showImport}
+        onClose={() => setShowImport(false)}
+        type="routine"
+        onImport={(imported) => {
+          const newRoutines = imported.map((r, i) => ({
+            id: `imported_${Date.now()}_${i}`,
+            name: r.name,
+            muscles: r.exercises.map(e => e.name).slice(0, 3).join(', '),
+            duration: `~${Math.round(r.exercises.length * 5)} min`,
+            exercises: r.exercises.map(e => ({
+              exerciseId: e.name.toLowerCase().replace(/\s+/g, '_'),
+              rest: e.rest || 90,
+              sets: e.sets,
+            })),
+          }));
+          const updated = [...routines, ...newRoutines];
+          if (actions.saveRoutines) actions.saveRoutines(updated);
+        }}
+      />
     </div>
   );
 }

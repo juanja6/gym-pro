@@ -74,6 +74,7 @@ export default function App() {
 
   // Save helpers (async to Firestore)
   const saveProfile = useCallback((v) => { setProfile(v); storage.setProfile(v); }, []);
+  const saveRoutines = useCallback((v) => { setRoutines(v); storage.setRoutines(v); }, []);
   const saveWorkoutLog = useCallback((v) => { setWorkoutLog(v); storage.setWorkoutLog(v); }, []);
   const saveBodyLog = useCallback((v) => { setBodyLog(v); storage.setBodyLog(v); }, []);
   const saveMeals = useCallback((v) => { setMealsData(v); storage.setMeals(v); }, []);
@@ -156,7 +157,7 @@ export default function App() {
   );
 
   const state = { profile, routines, workoutLog, bodyLog, mealsData, waterLog, favorites, streaks, user };
-  const actions = { saveProfile, saveWorkoutLog, saveBodyLog, saveMeals, saveWater, saveFavorites, saveStreaks, addWater, toggleFav, getAITips, logout };
+  const actions = { saveProfile, saveRoutines, saveWorkoutLog, saveBodyLog, saveMeals, saveWater, saveFavorites, saveStreaks, addWater, toggleFav, getAITips, logout };
 
   const screens = {
     home: <HomeScreen state={state} actions={actions} setTab={setTab} />,

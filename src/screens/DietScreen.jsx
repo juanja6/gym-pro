@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Card, Badge, Btn, Modal, Ring } from '../components/common';
 import { FOOD_DB, MEAL_SLOTS } from '../data/foods';
-import { Search, Plus, Trash2, Droplets, ChevronLeft } from 'lucide-react';
+import { Search, Plus, Trash2, Droplets, ChevronLeft, Upload, Calculator } from 'lucide-react';
+import ImportModal from '../components/ImportModal';
+import GoalCalculator from '../components/GoalCalculator';
 
 export default function DietScreen({ state, actions }) {
   const { profile, mealsData, waterLog } = state;
@@ -10,6 +12,8 @@ export default function DietScreen({ state, actions }) {
   const [foodSearch, setFoodSearch] = useState('');
   const [foodQty, setFoodQty] = useState('100');
   const [selFood, setSelFood] = useState(null);
+  const [showImport, setShowImport] = useState(false);
+  const [showCalc, setShowCalc] = useState(false);
 
   const todayKey = new Date().toISOString().split('T')[0];
   const todayMeals = (mealsData[todayKey] || { meals: [] }).meals || [];
@@ -46,7 +50,12 @@ export default function DietScreen({ state, actions }) {
 
   return (
     <div className="screen">
-      <h1 className="title">Nutrición</h1>
+      <div className="row-between mb-md">
+        <h1 className="title" style={{ marginBottom: 0 }}>Nutrición</h1>
+        <Btn small onClick={() => setShowCalc(true)}>
+          <Calculator size={14} /> Objetivos
+        </Btn>
+      </div>
 
       {/* Calorie Ring */}
       <Card style={{ textAlign: 'center' }}>
@@ -109,7 +118,13 @@ export default function DietScreen({ state, actions }) {
       </Card>
 
       {/* Meal Slots */}
-      <div className="label mb-md">Comidas de Hoy</div>
+      {/* Import + Meal Slots */}
+      <div className="row-between mb-md">
+        <span className="label">Comidas de Hoy</span>
+        <Btn small secondary onClick={() => setShowImport(true)}>
+          <Upload size={14} /> Importar Dieta
+        </Btn>
+      </div>
       {MEAL_SLOTS.map(slot => {
         const meal = todayMeals.find(m => m.name === slot);
         const mealIdx = todayMeals.findIndex(m => m.name === slot);
@@ -207,6 +222,32 @@ export default function DietScreen({ state, actions }) {
           </>
         )}
       </Modal>
+
+      <ImportModal
+        visible={showImport}
+        onClose={() => setShowImport(false)}
+        type="diet"
+        onImport={(imported) => {
+          const todayKey = new Date().toISOString().split('T')[0];
+          const existing = mealsData[todayKey] ? JSON.parse(JSON.stringify(mealsData[todayKey])) : { meals: [] };
+          for (const meal of imported) {
+            let mealIdx = existing.meals.findIndex(m => m.name === meal.name);
+            if (mealIdx === -1) {
+              existing.meals.push({ name: meal.name, items: [] });
+              mealIdx = existing.meals.length - 1;
+            }
+            existing.meals[mealIdx].items.push(...meal.items);
+          }
+          saveMeals({ ...mealsData, [todayKey]: existing });
+        }}
+      />
+
+      <GoalCalculator
+        visible={showCalc}
+        onClose={() => setShowCalc(false)}
+        profile={profile}
+        onSave={actions.saveProfile}
+      />
     </div>
   );
 }

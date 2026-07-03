@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Card, Badge, Btn } from '../components/common';
-import { Pencil, Sparkles, Download, Save, Upload, LogOut } from 'lucide-react';
+import { Pencil, Sparkles, Download, Save, Upload, LogOut, Calculator } from 'lucide-react';
 import storage from '../services/storage';
+import GoalCalculator from '../components/GoalCalculator';
 
 export default function ProfileScreen({ state, actions }) {
   const { profile, streaks, workoutLog, user } = state;
@@ -9,6 +10,7 @@ export default function ProfileScreen({ state, actions }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(profile);
   const [importMode, setImportMode] = useState(false);
+  const [showCalc, setShowCalc] = useState(false);
   const tips = getAITips();
 
   const tmb = Math.round(10 * profile.weight + 6.25 * profile.height - 5 * profile.age + (profile.sex === 'Hombre' ? 5 : -161));
@@ -101,7 +103,12 @@ export default function ProfileScreen({ state, actions }) {
 
           {/* Metabolism */}
           <Card>
-            <div className="label mb-md">Metabolismo y Objetivos</div>
+            <div className="row-between mb-md">
+              <span className="label">Metabolismo y Objetivos</span>
+              <button onClick={() => setShowCalc(true)} style={{ background: 'none', padding: 4 }}>
+                <Calculator size={16} color="var(--accent)" />
+              </button>
+            </div>
             <div className="grid-3">
               {[
                 { l: 'TMB', v: tmb, c: 'var(--orange)' },
@@ -206,6 +213,13 @@ export default function ProfileScreen({ state, actions }) {
           </div>
         </Card>
       )}
+
+      <GoalCalculator
+        visible={showCalc}
+        onClose={() => setShowCalc(false)}
+        profile={profile}
+        onSave={saveProfile}
+      />
     </div>
   );
 }
