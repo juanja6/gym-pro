@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Card, Btn, Modal } from '../components/common';
-import { Camera, Trash2, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { Camera, Trash2, ChevronLeft, Calendar, Image, Upload } from 'lucide-react';
 
 export default function ProgressPhotos({ state, actions }) {
   const { progressPhotos = [] } = state;
@@ -10,9 +10,10 @@ export default function ProgressPhotos({ state, actions }) {
   const [compareIdx, setCompareIdx] = useState([0, null]);
   const [viewPhoto, setViewPhoto] = useState(null);
   const [photoLabel, setPhotoLabel] = useState('Frente');
-  const fileRef = useRef(null);
+  const cameraRef = useRef(null);
+  const galleryRef = useRef(null);
 
-  const takePhoto = (e) => {
+  const handlePhoto = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
@@ -23,8 +24,7 @@ export default function ProgressPhotos({ state, actions }) {
         label: photoLabel,
         data: ev.target.result,
       };
-      const updated = [...progressPhotos, entry];
-      saveProgressPhotos(updated);
+      saveProgressPhotos([...progressPhotos, entry]);
       setShowCamera(false);
     };
     reader.readAsDataURL(file);
@@ -65,40 +65,26 @@ export default function ProgressPhotos({ state, actions }) {
         <Card>
           <div className="label mb-md text-center">Antes vs Después</div>
           <div style={{ display: 'flex', gap: 4 }}>
-            <div style={{ flex: 1 }}>
-              <div className="text-dim text-xs text-center mb-sm">Antes</div>
-              <select
-                value={compareIdx[0]}
-                onChange={e => setCompareIdx([parseInt(e.target.value), compareIdx[1]])}
-                style={{ width: '100%', marginBottom: 8, padding: '8px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', fontSize: 12 }}
-              >
-                {progressPhotos.map((p, i) => (
-                  <option key={p.id} value={i}>{p.date} - {p.label}</option>
-                ))}
-              </select>
-              <img
-                src={progressPhotos[compareIdx[0]]?.data}
-                alt="Antes"
-                style={{ width: '100%', borderRadius: 10, aspectRatio: '3/4', objectFit: 'cover' }}
-              />
-            </div>
-            <div style={{ flex: 1 }}>
-              <div className="text-dim text-xs text-center mb-sm">Después</div>
-              <select
-                value={compareIdx[1] ?? progressPhotos.length - 1}
-                onChange={e => setCompareIdx([compareIdx[0], parseInt(e.target.value)])}
-                style={{ width: '100%', marginBottom: 8, padding: '8px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', fontSize: 12 }}
-              >
-                {progressPhotos.map((p, i) => (
-                  <option key={p.id} value={i}>{p.date} - {p.label}</option>
-                ))}
-              </select>
-              <img
-                src={progressPhotos[compareIdx[1] ?? progressPhotos.length - 1]?.data}
-                alt="Después"
-                style={{ width: '100%', borderRadius: 10, aspectRatio: '3/4', objectFit: 'cover' }}
-              />
-            </div>
+            {[0, 1].map(side => {
+              const idx = side === 0 ? compareIdx[0] : (compareIdx[1] ?? progressPhotos.length - 1);
+              return (
+                <div key={side} style={{ flex: 1 }}>
+                  <div className="text-dim text-xs text-center mb-sm">{side === 0 ? 'Antes' : 'Después'}</div>
+                  <select value={idx}
+                    onChange={e => {
+                      const v = parseInt(e.target.value);
+                      setCompareIdx(side === 0 ? [v, compareIdx[1]] : [compareIdx[0], v]);
+                    }}
+                    style={{ width: '100%', marginBottom: 8, padding: 8, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', fontSize: 12 }}>
+                    {progressPhotos.map((p, i) => (
+                      <option key={p.id} value={i}>{p.date} - {p.label}</option>
+                    ))}
+                  </select>
+                  <img src={progressPhotos[idx]?.data} alt={side === 0 ? 'Antes' : 'Después'}
+                    style={{ width: '100%', borderRadius: 10, aspectRatio: '3/4', objectFit: 'cover' }} />
+                </div>
+              );
+            })}
           </div>
         </Card>
       ) : (
@@ -107,7 +93,10 @@ export default function ProgressPhotos({ state, actions }) {
           <div className="empty-state">
             <Camera size={40} />
             <span>Sin fotos de progreso aún</span>
-            <span className="text-dim text-sm">Sácate una foto cada semana para ver tu transformación</span>
+            <span className="text-dim text-sm" style={{ textAlign: 'center' }}>Sácate una foto cada semana para ver tu transformación</span>
+            <Btn onClick={() => setShowCamera(true)} style={{ marginTop: 12 }}>
+              <Camera size={16} /> Añadir primera foto
+            </Btn>
           </div>
         ) : dates.map(date => (
           <div key={date} style={{ marginBottom: 16 }}>
@@ -131,42 +120,62 @@ export default function ProgressPhotos({ state, actions }) {
         ))
       )}
 
-      {/* Camera Modal */}
-      <Modal visible={showCamera} onClose={() => setShowCamera(false)} title="Nueva Foto">
-        <div className="label mb-sm">Ángulo</div>
-        <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+      {/* Camera/Gallery Modal */}
+      <Modal visible={showCamera} onClose={() => setShowCamera(false)} title="Nueva Foto de Progreso">
+        <div className="label mb-sm">Ángulo de la foto</div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
           {['Frente', 'Lateral', 'Espalda'].map(l => (
             <button key={l} onClick={() => setPhotoLabel(l)}
-              style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: `1px solid ${photoLabel === l ? 'var(--accent)' : 'var(--border)'}`, background: photoLabel === l ? 'var(--accent-dim)' : 'var(--bg)', color: photoLabel === l ? 'var(--accent)' : 'var(--text-dim)', fontSize: 13, fontWeight: 600 }}>
-              {l}
+              style={{ flex: 1, padding: '12px 0', borderRadius: 10, border: `2px solid ${photoLabel === l ? 'var(--accent)' : 'var(--border)'}`, background: photoLabel === l ? 'var(--accent-dim)' : 'var(--bg)', color: photoLabel === l ? 'var(--accent)' : 'var(--text-dim)', fontSize: 14, fontWeight: 700 }}>
+              {l === 'Frente' ? '🧍' : l === 'Lateral' ? '🧍‍♂️' : '🔙'} {l}
             </button>
           ))}
         </div>
-        <Btn onClick={() => fileRef.current?.click()} className="w-full">
-          <Camera size={16} /> Abrir Cámara
+
+        {/* BIG centered buttons */}
+        <Btn onClick={() => cameraRef.current?.click()} className="w-full" style={{ padding: 16, fontSize: 16, marginBottom: 10 }}>
+          <Camera size={20} /> Abrir Cámara
         </Btn>
-        <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={takePhoto} style={{ display: 'none' }} />
-        <p className="text-dim text-sm text-center" style={{ marginTop: 12 }}>
-          Consejos: misma posición, misma luz, ropa interior o bañador
-        </p>
+        <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handlePhoto} style={{ display: 'none' }} />
+
+        <Btn secondary onClick={() => galleryRef.current?.click()} className="w-full" style={{ padding: 16, fontSize: 16, marginBottom: 16 }}>
+          <Image size={20} /> Elegir de Galería
+        </Btn>
+        <input ref={galleryRef} type="file" accept="image/*" onChange={handlePhoto} style={{ display: 'none' }} />
+
+        <div style={{ textAlign: 'center', padding: '12px 0', background: 'var(--bg)', borderRadius: 10, border: '1px solid var(--border)' }}>
+          <div className="text-dim text-sm" style={{ lineHeight: 1.6 }}>
+            💡 <strong>Consejos:</strong><br/>
+            Misma posición · Misma luz · Ropa interior o bañador
+          </div>
+        </div>
       </Modal>
 
-      {/* View Photo Modal */}
-      <Modal visible={!!viewPhoto} onClose={() => setViewPhoto(null)} title={viewPhoto?.label || ''}>
-        {viewPhoto && (
-          <>
+      {/* View Photo Modal - fullscreen */}
+      {viewPhoto && (
+        <div className="modal-overlay" onClick={() => setViewPhoto(null)}
+          style={{ alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ width: '100%', maxWidth: 420, position: 'relative' }} onClick={e => e.stopPropagation()}>
             <img src={viewPhoto.data} alt={viewPhoto.label}
-              style={{ width: '100%', borderRadius: 12, marginBottom: 12 }} />
-            <div className="row-between">
-              <span className="text-dim text-sm">{viewPhoto.date}</span>
-              <button onClick={() => deletePhoto(viewPhoto.id)}
-                style={{ background: 'none', color: 'var(--red)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13 }}>
-                <Trash2 size={14} /> Eliminar
-              </button>
+              style={{ width: '100%', borderRadius: 16, marginBottom: 12 }} />
+            <div className="row-between" style={{ marginBottom: 12 }}>
+              <div>
+                <div style={{ fontWeight: 700, color: 'white' }}>{viewPhoto.label}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{viewPhoto.date}</div>
+              </div>
             </div>
-          </>
-        )}
-      </Modal>
+            {/* BIG centered delete button */}
+            <Btn onClick={() => deletePhoto(viewPhoto.id)} className="w-full"
+              style={{ background: 'var(--red-dim)', color: 'var(--red)', padding: 14, fontSize: 15 }}>
+              <Trash2 size={18} /> Eliminar Foto
+            </Btn>
+            <Btn secondary onClick={() => setViewPhoto(null)} className="w-full"
+              style={{ marginTop: 8, padding: 14, color: 'white', borderColor: 'rgba(255,255,255,0.2)' }}>
+              Cerrar
+            </Btn>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

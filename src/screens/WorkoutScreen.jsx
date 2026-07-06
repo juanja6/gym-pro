@@ -17,6 +17,7 @@ export default function WorkoutScreen({ state, actions }) {
   const [timer, setTimer] = useState({ active: false, secs: 90, rem: 90 });
   const [now, setNow] = useState(Date.now());
   const [showImport, setShowImport] = useState(false);
+  const [imgModal, setImgModal] = useState(null);
   const timerRef = useRef(null);
 
   useEffect(() => {
@@ -187,12 +188,14 @@ export default function WorkoutScreen({ state, actions }) {
         </button>
         <div style={{ width: '100%', height: 180, background: 'var(--card)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, overflow: 'hidden', border: '1px solid var(--border)' }}>
           {getExerciseImage(selEx.name) ? (
-            <div style={{ display: 'flex', width: '100%', height: '100%' }}>
+            <div style={{ display: 'flex', width: '100%', height: '100%', cursor: 'pointer' }}
+              onClick={() => setImgModal(getExerciseImages(selEx.name))}>
               {getExerciseImages(selEx.name).map((src, i) => (
                 <img key={i} src={src} alt={`${selEx.name} ${i+1}`}
                   style={{ flex: 1, height: '100%', objectFit: 'cover' }}
                   onError={e => e.target.style.display = 'none'} />
               ))}
+              <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.6)', borderRadius: 6, padding: '3px 8px', fontSize: 10, color: 'white' }}>Tocar para ampliar</div>
             </div>
           ) : (
             <div style={{ textAlign: 'center' }}>
@@ -412,6 +415,23 @@ export default function WorkoutScreen({ state, actions }) {
             ))}
           </Card>
         ))
+      )}
+
+      {/* Image fullscreen modal */}
+      {imgModal && (
+        <div className="modal-overlay" onClick={() => setImgModal(null)}
+          style={{ alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ width: '100%', maxWidth: 480, position: 'relative' }} onClick={e => e.stopPropagation()}>
+            <button onClick={() => setImgModal(null)}
+              style={{ position: 'absolute', top: -40, right: 0, background: 'none', color: 'white', fontSize: 24, padding: 8, zIndex: 10 }}>✕</button>
+            {imgModal.map((src, i) => (
+              <img key={i} src={src} alt={`Ejercicio ${i+1}`}
+                style={{ width: '100%', borderRadius: 12, marginBottom: 8, background: 'var(--card)' }}
+                onError={e => e.target.style.display = 'none'} />
+            ))}
+            <div className="text-dim text-center text-sm" style={{ marginTop: 4 }}>Posición inicial y final</div>
+          </div>
+        </div>
       )}
 
       <ImportModal

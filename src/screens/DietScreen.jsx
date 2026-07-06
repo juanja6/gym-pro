@@ -199,35 +199,45 @@ export default function DietScreen({ state, actions }) {
             <button className="row mb-md" onClick={() => setSelFood(null)} style={{ background: 'none', color: 'var(--text-dim)', gap: 4, fontSize: 13 }}>
               <ChevronLeft size={16} /> Volver a búsqueda
             </button>
-            <Card>
-              <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{selFood.name}</div>
-              <div className="label mb-sm">Cantidad (gramos)</div>
-              <input type="number" value={foodQty} onChange={e => setFoodQty(e.target.value)} style={{ marginBottom: 12 }} />
-              {(() => {
-                const m = parseFloat(foodQty) / 100;
-                return (
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    {[
-                      { l: 'KCAL', v: Math.round(selFood.cal * m), c: 'var(--accent)' },
-                      { l: 'PROT', v: Math.round(selFood.p * m), c: 'var(--blue)' },
-                      { l: 'CARB', v: Math.round(selFood.c * m), c: 'var(--orange)' },
-                      { l: 'GRASA', v: Math.round(selFood.f * m), c: 'var(--red)' },
-                    ].map(x => (
-                      <div key={x.l} style={{ flex: 1, textAlign: 'center', padding: 8, background: 'var(--bg)', borderRadius: 8 }}>
-                        <div className="text-dim" style={{ fontSize: 9 }}>{x.l}</div>
-                        <div style={{ fontSize: 16, fontWeight: 700, color: x.c, marginTop: 2 }}>{x.v}</div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
-            </Card>
-            <div className="row" style={{ gap: 10, marginTop: 12 }}>
-              <Btn secondary onClick={() => setSelFood(null)} style={{ flex: 1 }}>Volver</Btn>
-              <Btn onClick={() => addFoodToMeal(addModal, selFood, foodQty)} style={{ flex: 2 }}>
-                <Plus size={14} /> Añadir
-              </Btn>
+
+            {/* Food emoji + name */}
+            <div style={{ textAlign: 'center', marginBottom: 16 }}>
+              <span style={{ fontSize: 48 }}>{selFood.emoji || '🍽️'}</span>
+              <div style={{ fontSize: 18, fontWeight: 700, marginTop: 8 }}>{selFood.name}</div>
+              <div className="text-dim text-sm">{selFood.portion}</div>
             </div>
+
+            {/* Quantity input */}
+            <div className="label mb-sm">Cantidad (gramos)</div>
+            <input type="number" value={foodQty} onChange={e => setFoodQty(e.target.value)} style={{ marginBottom: 16, fontSize: 18, textAlign: 'center', padding: 14 }} />
+
+            {/* Macro preview */}
+            {(() => {
+              const m = parseFloat(foodQty) / 100;
+              return (
+                <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                  {[
+                    { l: 'KCAL', v: Math.round(selFood.cal * m), c: 'var(--accent)' },
+                    { l: 'PROT', v: Math.round(selFood.p * m), c: 'var(--blue)' },
+                    { l: 'CARB', v: Math.round(selFood.c * m), c: 'var(--orange)' },
+                    { l: 'GRASA', v: Math.round(selFood.f * m), c: 'var(--red)' },
+                  ].map(x => (
+                    <div key={x.l} style={{ flex: 1, textAlign: 'center', padding: 10, background: 'var(--bg)', borderRadius: 10, border: '1px solid var(--border)' }}>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: x.c }}>{x.v}</div>
+                      <div className="text-dim" style={{ fontSize: 10, marginTop: 2 }}>{x.l}</div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+
+            {/* BIG centered buttons */}
+            <Btn onClick={() => addFoodToMeal(addModal, selFood, foodQty)} className="w-full" style={{ padding: 16, fontSize: 16, marginBottom: 10 }}>
+              <Plus size={18} /> Añadir a {addModal}
+            </Btn>
+            <Btn secondary onClick={() => setSelFood(null)} className="w-full" style={{ padding: 14 }}>
+              Volver a búsqueda
+            </Btn>
           </>
         )}
       </Modal>
