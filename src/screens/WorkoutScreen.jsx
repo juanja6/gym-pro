@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, Badge, Btn, Modal, Ring } from '../components/common';
 import { EXERCISES, MUSCLE_GROUPS, MUSCLE_EMOJI } from '../data/exercises';
+import { getExerciseImage, getExerciseImages } from '../data/exerciseImages';
 import { Search, ChevronLeft, ChevronRight, Dumbbell, Star, Check, Play, Square, Clock, Upload } from 'lucide-react';
 import ImportModal from '../components/ImportModal';
 
@@ -184,8 +185,21 @@ export default function WorkoutScreen({ state, actions }) {
         <button className="row mb-lg" onClick={() => setSelEx(null)} style={{ background: 'none', color: 'var(--text-dim)', gap: 4 }}>
           <ChevronLeft size={18} /> Volver
         </button>
-        <div style={{ width: '100%', height: 140, background: 'var(--accent-dim)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-          <Dumbbell size={48} color="var(--accent)" />
+        <div style={{ width: '100%', height: 180, background: 'var(--card)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, overflow: 'hidden', border: '1px solid var(--border)' }}>
+          {getExerciseImage(selEx.name) ? (
+            <div style={{ display: 'flex', width: '100%', height: '100%' }}>
+              {getExerciseImages(selEx.name).map((src, i) => (
+                <img key={i} src={src} alt={`${selEx.name} ${i+1}`}
+                  style={{ flex: 1, height: '100%', objectFit: 'cover' }}
+                  onError={e => e.target.style.display = 'none'} />
+              ))}
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center' }}>
+              <span style={{ fontSize: 48 }}>{selEx.emoji || '🏋️'}</span>
+              <div className="text-dim text-sm" style={{ marginTop: 4 }}>{selEx.muscle}</div>
+            </div>
+          )}
         </div>
         <div className="row-between mb-sm">
           <h2 style={{ fontSize: 22, fontWeight: 800, flex: 1 }}>{selEx.name}</h2>
@@ -352,8 +366,14 @@ export default function WorkoutScreen({ state, actions }) {
           {filtered.map(ex => (
             <Card key={ex.id} onClick={() => setSelEx(ex)}>
               <div className="row" style={{ gap: 12 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Dumbbell size={18} color="var(--accent)" />
+                <div style={{ width: 52, height: 52, borderRadius: 12, background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                  {getExerciseImage(ex.name) ? (
+                    <img src={getExerciseImage(ex.name)} alt={ex.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={e => { e.target.style.display='none'; e.target.parentElement.innerHTML=`<span style="font-size:24px">${ex.emoji||'🏋️'}</span>`; }} />
+                  ) : (
+                    <span style={{ fontSize: 24 }}>{ex.emoji || '🏋️'}</span>
+                  )}
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: 15 }}>{ex.name}</div>
