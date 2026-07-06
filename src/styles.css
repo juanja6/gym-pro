@@ -71,7 +71,7 @@ button {
 
 .screen {
   flex: 1;
-  padding: 16px 16px 100px;
+  padding: 16px 16px 110px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -199,11 +199,12 @@ button {
 .modal-content {
   width: 100%;
   max-width: 480px;
-  max-height: 85vh;
+  max-height: 90vh;
   background: var(--card);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  padding: 20px 16px;
+  padding: 20px 16px calc(24px + env(safe-area-inset-bottom, 16px));
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   animation: slideUp 0.2s ease;
 }
 .modal-header {

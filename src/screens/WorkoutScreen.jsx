@@ -186,24 +186,24 @@ export default function WorkoutScreen({ state, actions }) {
         <button className="row mb-lg" onClick={() => setSelEx(null)} style={{ background: 'none', color: 'var(--text-dim)', gap: 4 }}>
           <ChevronLeft size={18} /> Volver
         </button>
-        <div style={{ width: '100%', height: 180, background: 'var(--card)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, overflow: 'hidden', border: '1px solid var(--border)' }}>
+        <button onClick={() => { if (getExerciseImage(selEx.name)) setImgModal(getExerciseImages(selEx.name)); }}
+          style={{ width: '100%', height: 180, background: 'var(--card)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, overflow: 'hidden', border: '1px solid var(--border)', padding: 0, position: 'relative' }}>
           {getExerciseImage(selEx.name) ? (
-            <div style={{ display: 'flex', width: '100%', height: '100%', cursor: 'pointer' }}
-              onClick={() => setImgModal(getExerciseImages(selEx.name))}>
+            <>
               {getExerciseImages(selEx.name).map((src, i) => (
                 <img key={i} src={src} alt={`${selEx.name} ${i+1}`}
                   style={{ flex: 1, height: '100%', objectFit: 'cover' }}
                   onError={e => e.target.style.display = 'none'} />
               ))}
-              <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.6)', borderRadius: 6, padding: '3px 8px', fontSize: 10, color: 'white' }}>Tocar para ampliar</div>
-            </div>
+              <span style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.7)', borderRadius: 6, padding: '4px 10px', fontSize: 11, color: 'white' }}>🔍 Ampliar</span>
+            </>
           ) : (
             <div style={{ textAlign: 'center' }}>
               <span style={{ fontSize: 48 }}>{selEx.emoji || '🏋️'}</span>
               <div className="text-dim text-sm" style={{ marginTop: 4 }}>{selEx.muscle}</div>
             </div>
           )}
-        </div>
+        </button>
         <div className="row-between mb-sm">
           <h2 style={{ fontSize: 22, fontWeight: 800, flex: 1 }}>{selEx.name}</h2>
           <button onClick={() => toggleFav(selEx.id)} style={{ background: 'none', padding: 8 }}>
@@ -272,13 +272,26 @@ export default function WorkoutScreen({ state, actions }) {
 
   // ── ROUTINE DETAIL ──
   if (selRt) {
+    const deleteRoutine = () => {
+      if (confirm(`¿Eliminar la rutina "${selRt.name}"?`)) {
+        const updated = routines.filter(r => r.id !== selRt.id && r.name !== selRt.name);
+        if (actions.saveRoutines) actions.saveRoutines(updated);
+        setSelRt(null);
+      }
+    };
+
     return (
       <div className="screen">
-        <button className="row mb-lg" onClick={() => setSelRt(null)} style={{ background: 'none', color: 'var(--text-dim)', gap: 4 }}>
-          <ChevronLeft size={18} /> Volver
-        </button>
+        <div className="row-between mb-lg">
+          <button className="row" onClick={() => setSelRt(null)} style={{ background: 'none', color: 'var(--text-dim)', gap: 4 }}>
+            <ChevronLeft size={18} /> Volver
+          </button>
+          <button onClick={deleteRoutine} style={{ background: 'none', color: 'var(--red)', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, padding: 8 }}>
+            🗑️ Eliminar
+          </button>
+        </div>
         <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>{selRt.name}</h2>
-        <div className="text-dim text-sm mb-md">{selRt.muscles} · {selRt.duration}</div>
+        <div className="text-dim text-sm mb-md">{selRt.muscles || `${selRt.exercises.length} ejercicios`} {selRt.duration ? `· ${selRt.duration}` : ''}</div>
         <Btn className="w-full mb-lg" onClick={() => startWorkout(selRt)}>
           <Play size={16} /> Empezar Entrenamiento
         </Btn>
@@ -419,17 +432,17 @@ export default function WorkoutScreen({ state, actions }) {
 
       {/* Image fullscreen modal */}
       {imgModal && (
-        <div className="modal-overlay" onClick={() => setImgModal(null)}
-          style={{ alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ width: '100%', maxWidth: 480, position: 'relative' }} onClick={e => e.stopPropagation()}>
-            <button onClick={() => setImgModal(null)}
-              style={{ position: 'absolute', top: -40, right: 0, background: 'none', color: 'white', fontSize: 24, padding: 8, zIndex: 10 }}>✕</button>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 300, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => setImgModal(null)}>
+          <button onClick={() => setImgModal(null)}
+            style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.15)', color: 'white', fontSize: 18, padding: '8px 14px', borderRadius: 10, zIndex: 10 }}>✕ Cerrar</button>
+          <div style={{ width: '100%', maxWidth: 440 }} onClick={e => e.stopPropagation()}>
             {imgModal.map((src, i) => (
-              <img key={i} src={src} alt={`Ejercicio ${i+1}`}
-                style={{ width: '100%', borderRadius: 12, marginBottom: 8, background: 'var(--card)' }}
+              <img key={i} src={src} alt={`Posición ${i+1}`}
+                style={{ width: '100%', borderRadius: 12, marginBottom: 8 }}
                 onError={e => e.target.style.display = 'none'} />
             ))}
-            <div className="text-dim text-center text-sm" style={{ marginTop: 4 }}>Posición inicial y final</div>
+            <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.5)', fontSize: 13, marginTop: 4 }}>Posición inicial y final · Toca fuera para cerrar</div>
           </div>
         </div>
       )}
